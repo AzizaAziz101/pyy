@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   }));
 
   const command = new ConverseStreamCommand({
-    modelId: 'meta.llama3-2-3b-instruct-v1:0',
+    modelId: 'eu.meta.llama3-2-3b-instruct-v1:0',
     messages: bedrockMessages,
     ...(system && { system: [{ text: system }] }),
     inferenceConfig: { maxTokens: maxTokens || 2048 },
