@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ziel-Coach — KI</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0a;
+      --surface:   #111111;
+      --surface-h: #161616;
+      --border:    rgba(255,255,255,0.09);
+      --border-h:  rgba(255,255,255,0.16);
+      --text:      #e4e4e4;
+      --muted:     #5a5a5a;
+      --muted-2:   #383838;
+      --col-an:    #3b82f6;
+      --col-sd:    #10b981;
+      --col-pv:    #d97706;
+      --px: 28px;
+    }
+    @media (max-width: 600px) { :root { --px: 14px; } }
+
+    html, body {
+      height: 100%; font-family: 'Inter', sans-serif;
+      background: var(--bg); color: var(--text);
+      -webkit-font-smoothing: antialiased; overflow: hidden;
+    }
+    .hidden { display: none !important; }
+
+    /* ══ SHARED ══════════════════════════════════ */
+    .page-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 var(--px); height: 52px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .logo {
+      width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0;
+      background: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: var(--bg);
+    }
+    .page-title { font-size: 13px; font-weight: 500; }
+    .badge {
+      flex-shrink: 0; font-size: 10px; font-weight: 500; letter-spacing: .04em;
+      color: var(--muted); background: var(--surface);
+      border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 500; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 9px; background: none; cursor: pointer;
+      font-family: 'Inter', sans-serif; white-space: nowrap; flex-shrink: 0;
+      transition: color .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .back-btn:hover { color: var(--text); border-color: var(--border-h); }
+
+    .messages-scroll {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      padding: 24px var(--px);
+      display: flex; flex-direction: column; gap: 0;
+      scrollbar-width: thin; scrollbar-color: #1a1a1a transparent;
+      -webkit-overflow-scrolling: touch;
+    }
+    .messages-scroll::-webkit-scrollbar { width: 3px; }
+    .messages-scroll::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 4px; }
+
+    /* send button */
+    .send-btn {
+      width: 32px; height: 32px; flex-shrink: 0; border-radius: 7px;
+      background: var(--text); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .send-btn:hover { opacity: .85; }
+    .send-btn:active { transform: scale(.93); }
+    .send-btn:disabled { opacity: .3; cursor: not-allowed; }
+    .send-btn svg { fill: var(--bg); }
+
+    /* shared input row */
+    .input-shell {
+      display: flex; gap: 8px; align-items: flex-end;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+      transition: border-color .2s;
+    }
+    .input-shell:focus-within { border-color: var(--border-h); }
+    .itext {
+      flex: 1; min-width: 0;
+      background: none; border: none; outline: none;
+      color: var(--text); font-family: 'Inter', sans-serif;
+      font-size: 16px; resize: none;
+      min-height: 22px; max-height: 120px; line-height: 1.5;
+    }
+    .itext::placeholder { color: var(--muted-2); }
+    .input-hint {
+      font-size: 11px; color: var(--muted-2);
+      margin-top: 7px; text-align: center;
+    }
+    @media (max-width: 600px) { .input-hint { display: none; } }
+
+    /* user bubble (shared) */
+    .user-bubble {
+      background: #181818; border: 1px solid var(--border);
+      border-right: 2px solid rgba(255,255,255,.13);
+      border-radius: 8px; border-bottom-right-radius: 3px;
+      padding: 11px 14px; font-size: 14px; line-height: 1.75;
+      max-width: 82%; word-break: break-word;
+    }
+    .user-wrap { display: flex; flex-direction: column; align-items: flex-end; margin-bottom: 18px; animation: fUp .22s ease; }
+    .user-lbl  { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; padding-right: 2px; }
+
+    @keyframes fUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ══ VIEW: ONBOARDING ════════════════════════ */
+    #viewOnboarding {
+      height: 100%; height: 100dvh;
+      display: flex; flex-direction: column;
+    }
+
+    .ob-header-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+    .ob-dots { display: flex; gap: 5px; }
+    .ob-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--muted-2); transition: background .3s;
+    }
+    .ob-dot.done   { background: var(--muted); }
+    .ob-dot.active { background: var(--text); }
+
+    .ob-system-wrap {
+      display: flex; flex-direction: column; gap: 4px;
+      max-width: 88%; margin-bottom: 22px;
+      animation: fUp .25s ease;
+    }
+    .ob-q { font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--text); }
+    .ob-hint-text { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .ob-step-label {
+      font-size: 10px; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+
+    .restore-banner {
+      margin: 0 var(--px) 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .restore-text { font-size: 13px; color: var(--muted); flex: 1; min-width: 160px; }
+    .restore-btns { display: flex; gap: 7px; }
+    .rb {
+      padding: 5px 12px; border-radius: 6px; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      border: 1px solid var(--border); background: none; color: var(--text);
+      transition: border-color .15s;
+    }
+    .rb:hover { border-color: var(--border-h); }
+    .rb.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .rb.primary:hover { opacity: .88; }
+
+    /* ══ VIEW: DISCUSSION ════════════════════════ */
+    #viewDiscussion {
+      height: 100%; height: 100dvh;
+      display: flex; flex-direction: column;
+    }
+
+    .disc-status { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+    .round-sep { display: flex; align-items: center; gap: 10px; margin: 20px 0 18px; flex-shrink: 0; }
+    .round-sep:first-child { margin-top: 0; }
+    .sep-line  { flex: 1; height: 1px; background: var(--border); }
+    .sep-label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .synth-sep .sep-line  { background: rgba(255,255,255,.14); }
+    .synth-sep .sep-label { color: #888; }
+
+    .agent-wrap { display: flex; flex-direction: column; margin-bottom: 18px; animation: fUp .22s ease; }
+    .agent-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding-left: 2px; flex-wrap: wrap; min-width: 0; }
+    .agent-bdg { width: 22px; height: 22px; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; }
+    .agent-nm  { font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .agent-sub { font-size: 11px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .agent-bubble {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 2px solid var(--ac); border-radius: 8px; border-bottom-left-radius: 3px;
+      padding: 11px 14px; font-size: 14px; line-height: 1.78;
+      word-break: break-word; overflow-wrap: break-word;
+    }
+    .synth-bubble { background: #141414; border-color: rgba(255,255,255,.13); }
+
+    .typing-wrap { display: flex; flex-direction: column; margin-bottom: 18px; }
+    .typing-dots {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 11px 13px; background: var(--surface); border: 1px solid var(--border);
+      border-left: 2px solid var(--ac); border-radius: 8px; border-bottom-left-radius: 3px;
+    }
+    .typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: td 1.1s infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: .18s; }
+    .typing-dots span:nth-child(3) { animation-delay: .36s; }
+    @keyframes td { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+    /* ══ VIEW: CHAT ══════════════════════════════ */
+    #viewChat {
+      height: 100%; height: 100dvh;
+      display: flex; flex-direction: column;
+    }
+
+    .chat-goal-label {
+      flex: 1; min-width: 0; font-size: 12px; color: var(--muted);
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+
+    .action-btn {
+      flex-shrink: 0; padding: 4px 10px;
+      background: none; border: 1px solid var(--border); border-radius: 5px;
+      color: var(--muted); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500;
+      cursor: pointer; transition: color .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .action-btn:hover { color: var(--text); border-color: var(--border-h); }
+    .action-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    /* Coach AI bubble */
+    .coach-wrap { display: flex; flex-direction: column; margin-bottom: 18px; animation: fUp .22s ease; }
+    .coach-lbl  { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; padding-left: 2px; }
+    .coach-bubble {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 2px solid rgba(255,255,255,.2);
+      border-radius: 8px; border-bottom-left-radius: 3px;
+      padding: 12px 15px; font-size: 14px; line-height: 1.78;
+      word-break: break-word; overflow-wrap: break-word;
+      max-width: 88%;
+    }
+
+    /* Typing for chat */
+    .chat-typing-wrap { margin-bottom: 18px; }
+    .chat-typing-dots {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 11px 13px; background: var(--surface); border: 1px solid var(--border);
+      border-left: 2px solid rgba(255,255,255,.2);
+      border-radius: 8px; border-bottom-left-radius: 3px;
+    }
+    .chat-typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: td 1.1s infinite; }
+    .chat-typing-dots span:nth-child(2) { animation-delay: .18s; }
+    .chat-typing-dots span:nth-child(3) { animation-delay: .36s; }
+
+    /* script card */
+    .script-card {
+      background: #0e0e16; border: 1px solid rgba(255,255,255,.13);
+      border-radius: 10px; padding: 18px 18px;
+      font-size: 13px; line-height: 1.8;
+      max-width: 92%; word-break: break-word;
+    }
+    .script-card strong { font-weight: 600; color: #c8c8e0; }
+
+    /* milestone event */
+    .event-bubble {
+      background: #0c0c0c; border: 1px solid rgba(255,255,255,.07);
+      border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;
+      font-size: 13px; color: var(--muted); line-height: 1.6;
+      font-style: italic;
+    }
+
+    /* input area */
+    .input-area { padding: 12px var(--px) 16px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
+
+    /* code in bubbles */
+    .agent-bubble pre, .coach-bubble pre, .script-card pre, .user-bubble pre {
+      background: rgba(0,0,0,.4); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 12px; margin: 8px 0; overflow-x: auto;
+    }
+    .agent-bubble code, .coach-bubble code, .script-card code, .user-bubble code {
+      font-family: 'JetBrains Mono','Fira Code',monospace; font-size: 12px;
+      background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 4px;
+    }
+    .agent-bubble pre code, .coach-bubble pre code, .script-card pre code, .user-bubble pre code {
+      background: none; padding: 0; line-height: 1.6;
+    }
+    .agent-bubble strong, .coach-bubble strong { font-weight: 600; color: #ccc; }
+
+    /* done note */
+    .done-note { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 0 4px; font-size: 12px; color: var(--muted); }
+    .done-check { width: 14px; height: 14px; border-radius: 50%; background: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #fff; flex-shrink: 0; }
+
+    /* error */
+    .error-block { padding: 12px 14px; margin: 8px 0; background: #130a0a; border: 1px solid #2e1515; border-radius: 8px; font-size: 13px; color: #f87171; }
+    .error-block small { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 400px) {
+      .agent-sub { display: none; }
+      .chat-goal-label { display: none; }
+    }
+
+    /* ══ AUTH SCREEN ═══════════════════════════ */
+    #viewAuth {
+      height: 100%; height: 100dvh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .auth-box {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 20px; width: 100%; max-width: 320px; padding: 0 24px;
+    }
+    .auth-logo {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: var(--bg);
+      margin-bottom: 4px;
+    }
+    .auth-title { font-size: 15px; font-weight: 600; letter-spacing: -.02em; }
+    .auth-sub   { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; }
+    .auth-input {
+      width: 100%; padding: 12px 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 20px;
+      font-weight: 600; letter-spacing: .3em; text-align: center;
+      outline: none; transition: border-color .2s;
+    }
+    .auth-input:focus { border-color: var(--border-h); }
+    .auth-input::placeholder { letter-spacing: .05em; font-size: 14px; font-weight: 400; color: var(--muted-2); }
+    .auth-btn {
+      width: 100%; padding: 12px;
+      background: var(--text); color: var(--bg); border: none;
+      border-radius: 8px; font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .auth-btn:hover { opacity: .88; }
+    .auth-btn:active { transform: scale(.98); }
+    .auth-error {
+      font-size: 12px; color: #f87171; text-align: center;
+      min-height: 16px; transition: opacity .2s;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     VIEW 0 — AUTH
+══════════════════════════════════════ -->
+<div id="viewAuth">
+  <div class="auth-box">
+    <div class="auth-logo">KI</div>
+    <div class="auth-title">Ziel-Coach</div>
+    <div class="auth-sub">Bitte gib den Zugangscode ein.</div>
+    <input
+      id="authInput"
+      class="auth-input"
+      type="password"
+      inputmode="numeric"
+      maxlength="10"
+      placeholder="Code"
+      onkeydown="handleAuthKey(event)"
+      autocomplete="off"
+    >
+    <div class="auth-error" id="authError"></div>
+    <button class="auth-btn" onclick="submitAuth()">Zugang →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIEW 1 — ONBOARDING
+══════════════════════════════════════ -->
+<div id="viewOnboarding">
+  <header class="page-header">
+    <div class="logo">KI</div>
+    <span class="page-title">Ziel-Coach</span>
+    <div class="ob-header-right">
+      <div class="ob-dots" id="obDots">
+        <div class="ob-dot active"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+      </div>
+      <span class="badge" id="obBadge">1 / 4</span>
+    </div>
+  </header>
+
+  <div class="messages-scroll" id="obMessages"></div>
+
+  <div id="restoreBanner" class="restore-banner hidden">
+    <span class="restore-text" id="restoreText">Letzte Sitzung gefunden</span>
+    <div class="restore-btns">
+      <button class="rb primary" onclick="restoreSession()">Fortsetzen</button>
+      <button class="rb" onclick="dismissRestore()">Neu starten</button>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-shell">
+      <textarea id="obInput" class="itext" placeholder="" rows="1"
+        onkeydown="handleObKey(event)" oninput="grow(this)"></textarea>
+      <button class="send-btn" id="obSendBtn" onclick="submitAnswer()">
+        <svg width="13" height="13" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <p class="input-hint">Enter weiter · Shift+Enter Zeilenumbruch</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIEW 2 — DISCUSSION (agents processing)
+══════════════════════════════════════ -->
+<div id="viewDiscussion" class="hidden">
+  <header class="page-header">
+    <div class="logo">KI</div>
+    <span class="disc-status" id="discStatus">Agenten analysieren dein Profil…</span>
+    <span class="badge" id="roundBadge">Runde 1 / 4</span>
+  </header>
+  <div class="messages-scroll" id="discMessages"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIEW 3 — CHAT (single-agent coach)
+══════════════════════════════════════ -->
+<div id="viewChat" class="hidden">
+  <header class="page-header">
+    <button class="back-btn" onclick="fullReset()">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Neu
+    </button>
+    <span class="chat-goal-label" id="chatGoalLabel"></span>
+    <button class="action-btn hidden" id="scriptBtn" onclick="generateScript()">Aktionsplan</button>
+    <button class="action-btn hidden" id="analysisBtn" onclick="triggerAnalysis()">Weganalyse</button>
+  </header>
+
+  <div class="messages-scroll" id="chatMessages"></div>
+
+  <div class="input-area">
+    <div class="input-shell">
+      <textarea id="chatInput" class="itext" placeholder="Nachricht…" rows="1"
+        onkeydown="handleChatKey(event)" oninput="grow(this)"></textarea>
+      <button class="send-btn" id="chatSendBtn" onclick="sendChat()">
+        <svg width="13" height="13" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <p class="input-hint">Enter senden · Shift+Enter Zeilenumbruch</p>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   CONFIG
+════════════════════════════════════════ */
+const QUESTIONS = [
+  { key: 'goal',    q: 'Welches Ziel möchtest du verfolgen?',
+    hint: 'Sei so konkret wie möglich.',
+    ph: 'Mein Ziel ist…' },
+  { key: 'price',   q: 'Welchen Preis bist du bereit, dafür zu zahlen?',
+    hint: 'Zeit, Geld, Komfort, soziale Kosten — sei ehrlich.',
+    ph: 'Ich bin bereit…' },
+  { key: 'fears',   q: 'Nenne deine 3 größten Ängste, die dich zweifeln lassen.',
+    hint: 'Diese Ängste werden Teil der Strategie.',
+    ph: 'Meine Ängste sind…' },
+  { key: 'reasons', q: 'Nenne 3 gute Gründe, warum du das Ziel erreichen kannst.',
+    hint: 'Deine Stärken werden in die Analyse einbezogen.',
+    ph: 'Ich schaffe es, weil…' },
+];
+
+const AGENTS = [
+  {
+    id: 'analyst', badge: 'AN', name: 'Analyst',
+    sub: 'Systemanalytik · Logik', color: '#3b82f6',
+    system: `Du bist ANALYST in einer KI-Problemlösungs-Diskussion mit SYSTEMDENKER (ganzheitlich) und PROVOKATEUR (kritisch). Hintergrund: Systemanalytik, Kausalanalyse, strukturiertes Denken.
+Je nach Runde — Erstanalyse: Kernkomponenten benennen. Vertiefung: Präzise auf andere reagieren. Konvergenz: Stärkste Einsichten synthetisieren. Synthese: Konkrete priorisierte Schritte.
+Stil: Direkt. Maximal 120 Wörter. Deutsch. Sofort mit Inhalt beginnen.`
+  },
+  {
+    id: 'systemdenker', badge: 'SD', name: 'Systemdenker',
+    sub: 'Emergenz · Musterdenken', color: '#10b981',
+    system: `Du bist SYSTEMDENKER in einer KI-Problemlösungs-Diskussion mit ANALYST (logisch) und PROVOKATEUR (kritisch). Hintergrund: Systemisches Denken, Emergenz, Feedback-Loops.
+Je nach Runde — Erstanalyse: Systemische Muster erkennen. Vertiefung: Beiträge auf höherer Ebene verbinden. Konvergenz: Perspektiven zu Systembild zusammenfügen. Synthese: Empfehlungen mit Blick auf systemische Risiken.
+Stil: Holistisch. Maximal 120 Wörter. Deutsch. Direkt starten.`
+  },
+  {
+    id: 'provokateur', badge: 'PV', name: 'Provokateur',
+    sub: 'First Principles · Kritik', color: '#d97706',
+    system: `Du bist PROVOKATEUR in einer KI-Problemlösungs-Diskussion mit ANALYST (logisch) und SYSTEMDENKER (holistisch). Hintergrund: First-Principles-Denken, blinde Flecken aufdecken.
+Je nach Runde — Erstanalyse: Wichtigste Grundannahme hinterfragen. Vertiefung: Blinde Flecken benennen. Konvergenz: Prüfen ob Lösung Kernproblem adressiert. Synthese: Kritische Voraussetzung für Erfolg benennen.
+Stil: Direkt, konstruktiv. Maximal 120 Wörter. Deutsch.`
+  }
+];
+
+const ROUNDS = [
+  { label: 'Erstanalyse', prompt: 'Analysiere das Nutzerprofil und Ziel aus deiner Perspektive. Präzise.' },
+  { label: 'Vertiefung',  prompt: 'Reagiere direkt auf die Beiträge der anderen. Vertiefe, ergänze, widersprich wo nötig.' },
+  { label: 'Konvergenz',  prompt: 'Identifiziere die stärksten Erkenntnisse. Wo zeigt sich Einigkeit, was bleibt offen?' },
+  { label: 'Synthese',    prompt: 'FINALE RUNDE. Konkreter, umsetzbarer Beitrag zur Gesamtlösung. Klar, ohne Wiederholungen.' },
+];
+
+const SESSION_KEY = 'ziel-coach-session';
+
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+let profile    = { goal: '', price: '', fears: '', reasons: '' };
+let obStep     = 0;
+let discHistory = [];  // {type:'agent'|'user', agentId?, agentName?, content}
+let chatHistory = [];  // [{role:'user'|'assistant', content}]
+let chatCount  = 0;
+let isRunning  = false;
+let scriptGenerated  = false;
+let analysisTriggered = false;
+
+/* ════════════════════════════════════════
+   UTILS
+════════════════════════════════════════ */
+const g = id => document.getElementById(id);
+function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(text) {
+  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (_,_l,c) => `<pre><code>${esc(c.trim())}</code></pre>`);
+  text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  text = text.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+function grow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+function scroll(id) { const el = g(id); if (el) el.scrollTop = el.scrollHeight; }
+function showView(id) {
+  ['viewAuth','viewOnboarding','viewDiscussion','viewChat'].forEach(v =>
+    g(v).classList.toggle('hidden', v !== id));
+}
+
+/* ════════════════════════════════════════
+   LOCAL STORAGE
+════════════════════════════════════════ */
+function saveSession() {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      profile, discHistory, chatHistory, chatCount,
+      scriptGenerated, analysisTriggered,
+      savedAt: Date.now()
+    }));
+  } catch(_) {}
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    // valid for 72h
+    if (Date.now() - s.savedAt > 72 * 60 * 60 * 1000) { clearSession(); return null; }
+    return s;
+  } catch(_) { return null; }
+}
+
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch(_) {}
+}
+
+function restoreSession() {
+  const s = loadSession();
+  if (!s) return;
+  profile           = s.profile;
+  discHistory       = s.discHistory || [];
+  chatHistory       = s.chatHistory || [];
+  chatCount         = s.chatCount || 0;
+  scriptGenerated   = s.scriptGenerated || false;
+  analysisTriggered = s.analysisTriggered || false;
+  g('restoreBanner').classList.add('hidden');
+  openChat(true);
+}
+
+function dismissRestore() {
+  clearSession();
+  g('restoreBanner').classList.add('hidden');
+  startOnboarding();
+}
+
+/* ════════════════════════════════════════
+   ONBOARDING
+════════════════════════════════════════ */
+function startOnboarding() {
+  obStep = 0;
+  g('obMessages').innerHTML = '';
+  showView('viewOnboarding');
+  showQuestion(0);
+}
+
+function showQuestion(step) {
+  const q = QUESTIONS[step];
+  const wrap = document.createElement('div');
+  wrap.className = 'ob-system-wrap';
+  wrap.innerHTML = `
+    <div class="ob-step-label">Frage ${step + 1} von 4</div>
+    <div class="ob-q">${esc(q.q)}</div>
+    ${q.hint ? `<div class="ob-hint-text">${esc(q.hint)}</div>` : ''}
+  `;
+  g('obMessages').appendChild(wrap);
+  scroll('obMessages');
+  g('obInput').placeholder = q.ph;
+  g('obInput').value = '';
+  g('obInput').style.height = 'auto';
+  updateObDots(step);
+  g('obBadge').textContent = `${step + 1} / 4`;
+  setTimeout(() => g('obInput').focus(), 100);
+}
+
+function updateObDots(step) {
+  const dots = g('obDots').children;
+  for (let i = 0; i < dots.length; i++) {
+    dots[i].className = 'ob-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+  }
+}
+
+function handleObKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitAnswer(); }
+}
+
+function submitAnswer() {
+  const input = g('obInput');
+  const answer = input.value.trim();
+  if (!answer || isRunning) return;
+
+  profile[QUESTIONS[obStep].key] = answer;
+
+  // Show user answer
+  const wrap = document.createElement('div');
+  wrap.className = 'user-wrap';
+  wrap.innerHTML = `<div class="user-lbl">Du</div><div class="user-bubble">${fmt(esc(answer))}</div>`;
+  g('obMessages').appendChild(wrap);
+  scroll('obMessages');
+
+  input.value = '';
+  input.style.height = 'auto';
+  obStep++;
+
+  if (obStep < QUESTIONS.length) {
+    setTimeout(() => showQuestion(obStep), 280);
+  } else {
+    // All questions answered → start discussion
+    g('obInput').disabled = true;
+    g('obSendBtn').disabled = true;
+    setTimeout(() => launchDiscussion(), 350);
+  }
+}
+
+/* ════════════════════════════════════════
+   DISCUSSION ORCHESTRATION
+════════════════════════════════════════ */
+async function launchDiscussion() {
+  isRunning = true;
+  discHistory = [];
+  g('discMessages').innerHTML = '';
+  g('discStatus').textContent = 'Agenten analysieren dein Profil…';
+  showView('viewDiscussion');
+
+  try {
+    for (let ri = 0; ri < ROUNDS.length; ri++) {
+      g('roundBadge').textContent = `Runde ${ri + 1} / ${ROUNDS.length}`;
+      appendDiscSep(ri + 1, ROUNDS[ri].label, ri === ROUNDS.length - 1);
+      for (const agent of AGENTS) {
+        await runDiscAgent(agent, buildDiscPrompt(ROUNDS[ri].prompt), ri === ROUNDS.length - 1, ri);
+      }
+    }
+    appendDoneNote('discMessages');
+    g('discStatus').textContent = 'Analyse abgeschlossen — Chat öffnet…';
+    await delay(800);
+    openChat(false);
+  } catch (err) {
+    appendError('discMessages', err.message);
+  }
+  isRunning = false;
+}
+
+function buildDiscPrompt(roundPrompt) {
+  const profileCtx = `NUTZERPROFIL:
+• Ziel: ${profile.goal}
+• Bereit zu zahlen: ${profile.price}
+• Ängste: ${profile.fears}
+• Stärken: ${profile.reasons}`;
+
+  if (discHistory.length === 0) {
+    return `${profileCtx}\n\nAufgabe: ${roundPrompt}`;
+  }
+  const hist = discHistory.map(m =>
+    m.type === 'agent' ? `[${m.agentName.toUpperCase()}]: ${m.content}` : `[NUTZER]: ${m.content}`
+  ).join('\n\n');
+  return `${profileCtx}\n\nDiskussion bisher:\n\n${hist}\n\n---\n\nAufgabe: ${roundPrompt}`;
+}
+
+async function runDiscAgent(agent, userContent, isSynth, roundIdx) {
+  const typingEl = appendTypingDisc(agent);
+  const res = await fetchChat(userContent, agent.system, isSynth ? 700 : 450);
+  typingEl.remove();
+  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  const bubble = appendDiscBubble(agent, isSynth);
+  const full = await streamInto(res, bubble, 'discMessages');
+  if (full) discHistory.push({
+    type: 'agent', agentId: agent.id, agentName: agent.name,
+    content: full, round: roundIdx,
+    roundLabel: ROUNDS[roundIdx]?.label || '', isSynth
+  });
+}
+
+/* ════════════════════════════════════════
+   CHAT (single-agent coach)
+════════════════════════════════════════ */
+/* Render the full agent discussion into any messages container */
+function renderDiscInChat(containerId) {
+  let lastRound = -1;
+  discHistory.forEach(item => {
+    if (item.type !== 'agent') return;
+    const ri = item.round ?? 0;
+    if (ri !== lastRound) {
+      const div = document.createElement('div');
+      div.className = `round-sep${item.isSynth ? ' synth-sep' : ''}`;
+      const lbl = item.isSynth ? 'Synthese' : `Runde ${ri + 1} — ${item.roundLabel}`;
+      div.innerHTML = `<div class="sep-line"></div><span class="sep-label">${lbl}</span><div class="sep-line"></div>`;
+      g(containerId).appendChild(div);
+      lastRound = ri;
+    }
+    const agent = AGENTS.find(a => a.id === item.agentId);
+    if (!agent) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'agent-wrap';
+    wrap.innerHTML = `
+      <div class="agent-header">
+        <div class="agent-bdg" style="background:${agent.color}">${agent.badge}</div>
+        <span class="agent-nm" style="color:${agent.color}">${agent.name}</span>
+        <span class="agent-sub">${agent.sub}</span>
+      </div>`;
+    const bubble = document.createElement('div');
+    bubble.className = `agent-bubble${item.isSynth ? ' synth-bubble' : ''}`;
+    bubble.style.setProperty('--ac', agent.color);
+    bubble.innerHTML = fmt(item.content);
+    wrap.appendChild(bubble);
+    g(containerId).appendChild(wrap);
+  });
+  // Separator between analysis and chat
+  if (discHistory.some(m => m.type === 'agent')) {
+    const sep = document.createElement('div');
+    sep.className = 'round-sep';
+    sep.style.margin = '26px 0 22px';
+    sep.innerHTML = `<div class="sep-line"></div><span class="sep-label" style="color:var(--text);font-weight:600">Chat</span><div class="sep-line"></div>`;
+    g(containerId).appendChild(sep);
+  }
+}
+
+function openChat(fromRestore) {
+  showView('viewChat');
+  const goalTrunc = profile.goal.length > 60 ? profile.goal.slice(0, 57) + '…' : profile.goal;
+  g('chatGoalLabel').textContent = goalTrunc;
+  g('chatMessages').innerHTML = '';
+
+  // Always render the discussion history at the top
+  renderDiscInChat('chatMessages');
+
+  if (!fromRestore) {
+    chatHistory = [];
+    chatCount = 0;
+    scriptGenerated = false;
+    analysisTriggered = false;
+    g('scriptBtn').classList.add('hidden');
+    g('analysisBtn').classList.add('hidden');
+
+    const welcome = `Die Analyse ist abgeschlossen.\n\n**Dein Ziel:** ${profile.goal}\n\nBasierend auf der Expertenrunde: Lass uns dieses Ziel jetzt konkret machen. Was ist der allererste Schritt, den du noch heute unternehmen könntest?`;
+    appendChatCoach(welcome);
+    chatHistory.push({ role: 'assistant', content: welcome });
+    saveSession();
+  } else {
+    restoreChatMessages();
+    g('scriptBtn').classList.toggle('hidden', !scriptGenerated && chatCount < 2);
+    g('analysisBtn').classList.toggle('hidden', !analysisTriggered && chatCount < 6);
+  }
+
+  setTimeout(() => { g('chatInput').focus(); }, 100);
+}
+
+function restoreChatMessages() {
+  chatHistory.forEach(m => {
+    if (m.role === 'user') appendChatUser(m.content);
+    else appendChatCoach(m.content);
+  });
+  scroll('chatMessages');
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  if (isRunning) return;
+  const input = g('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  chatCount++;
+
+  chatHistory.push({ role: 'user', content: text });
+  appendChatUser(text);
+
+  // milestone UI
+  if (chatCount >= 2) g('scriptBtn').classList.remove('hidden');
+  if (chatCount >= 6) g('analysisBtn').classList.remove('hidden');
+
+  isRunning = true;
+  g('chatSendBtn').disabled = true;
+
+  const typingEl = appendChatTyping();
+  try {
+    const res = await fetchChat(null, getChatSystem(), 600, chatHistory);
+    typingEl.remove();
+    if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+    const bubble = appendChatCoach('');
+    const full = await streamInto(res, bubble, 'chatMessages');
+    if (full) {
+      chatHistory.push({ role: 'assistant', content: full });
+      saveSession();
+    }
+  } catch (err) {
+    typingEl.remove();
+    appendChatCoach(`Fehler: ${esc(err.message)}`);
+  }
+
+  isRunning = false;
+  g('chatSendBtn').disabled = false;
+  g('chatInput').focus();
+}
+
+function getChatSystem() {
+  const profileCtx = `NUTZERPROFIL:
+• Ziel: ${profile.goal}
+• Bereit zu zahlen: ${profile.price}
+• Ängste: ${profile.fears}
+• Stärken: ${profile.reasons}`;
+
+  const discInsights = discHistory
+    .filter(m => m.type === 'agent')
+    .slice(-9)
+    .map(m => `[${m.agentName.toUpperCase()}]: ${m.content.slice(0, 250)}`)
+    .join('\n\n');
+
+  let trigger = '';
+  if (chatCount === 2 && !scriptGenerated) {
+    trigger = '\n\nWICHTIG: Biete am Ende dieser Antwort kurz an, ein strukturiertes Aktionsplan-Skript zu erstellen — z.B. "Soll ich dir ein grafisches Aktionsplan-Skript mit deinem Ziel, ersten Schritten und Hindernissen erstellen?"';
+  }
+  if (chatCount >= 6 && !analysisTriggered) {
+    trigger = '\n\nWICHTIG: Führe jetzt eine Weganalyse durch. Analysiere was sich im Gesprächsverlauf entwickelt hat: Welche konkreten Schritte wurden besprochen? Was hat sich im Denken des Nutzers verändert? Wo steht er jetzt? Was ist der logische nächste Schritt zur Finalisierung des Ziels?';
+    analysisTriggered = true;
+    saveSession();
+  }
+
+  return `Du bist ein fokussierter Ziel-Coach für diesen Nutzer.
+
+${profileCtx}
+
+EXPERTENANALYSE (3 KI-Agenten, Auszug):
+${discInsights}
+
+DEINE AUFGABEN:
+1. Ziel durch gezielte Gegenfragen aktiv schärfen und spezialisieren
+2. Konkrete erste Schritte einfordern — Nutzer muss handeln, nicht nur planen
+3. Ängste mit konkreten Gegenstrategien adressieren
+4. Fortschritt verfolgen, Rückmeldungen geben
+5. Ziel sukzessive verfeinern und finalisieren
+
+Stelle nach JEDER Antwort eine klare Folgefrage. Maximal 150 Wörter pro Antwort. Direkt. Deutsch.${trigger}`;
+}
+
+/* ════════════════════════════════════════
+   AKTIONSPLAN (SCRIPT) GENERATION
+════════════════════════════════════════ */
+async function generateScript() {
+  if (isRunning) return;
+  isRunning = true;
+  g('scriptBtn').disabled = true;
+
+  const placeholder = appendChatCoach('');
+  placeholder.innerHTML = '<em style="color:var(--muted)">Aktionsplan wird erstellt…</em>';
+  scroll('chatMessages');
+
+  const scriptPrompt = `Erstelle ein kompaktes, konkretes Aktionsplan-Skript für diesen Nutzer.
+Verwende exakt dieses Format:
+
+**ZIEL**
+[Das Ziel in einem präzisen Satz]
+
+**EINSATZ**
+[Was der Nutzer bereit ist zu investieren]
+
+**ERSTE SCHRITTE (diese Woche)**
+1. [Schritt]
+2. [Schritt]
+3. [Schritt]
+
+**HÜRDEN & GEGENSTRATEGIEN**
+• [Angst 1] → [Konkrete Strategie]
+• [Angst 2] → [Konkrete Strategie]
+• [Angst 3] → [Konkrete Strategie]
+
+**WARUM DU ES SCHAFFST**
+1. [Stärke]
+2. [Stärke]
+3. [Stärke]
+
+**MEILENSTEINE**
+Woche 1: [Aktivität]
+Monat 1: [Meilenstein]
+Monat 3: [Meilenstein]`;
+
+  const tempMessages = [...chatHistory, { role: 'user', content: 'Erstelle jetzt das Aktionsplan-Skript.' }];
+
+  try {
+    const res = await fetchChat(null, getChatSystem() + '\n\n' + scriptPrompt, 900, tempMessages);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    placeholder.className = 'script-card';
+    const full = await streamInto(res, placeholder, 'chatMessages');
+    if (full) {
+      chatHistory.push({ role: 'assistant', content: full });
+      scriptGenerated = true;
+      saveSession();
+    }
+  } catch (err) {
+    placeholder.innerHTML = `Fehler: ${esc(err.message)}`;
+  }
+
+  isRunning = false;
+  g('scriptBtn').disabled = false;
+  g('scriptBtn').textContent = 'Aktionsplan ✓';
+  g('chatInput').focus();
+}
+
+/* ════════════════════════════════════════
+   WEGANALYSE
+════════════════════════════════════════ */
+async function triggerAnalysis() {
+  if (isRunning) return;
+  isRunning = true;
+  g('analysisBtn').disabled = true;
+
+  appendEventNote('Weganalyse gestartet…');
+
+  const analysisMsg = { role: 'user', content: 'Führe jetzt eine detaillierte Weganalyse durch: Was hat sich im Laufe unseres Gesprächs entwickelt? Welche konkreten Schritte wurden besprochen oder unternommen? Wie hat sich mein Denken verändert? Was ist der finale nächste Schritt?' };
+
+  const tempMessages = [...chatHistory, analysisMsg];
+  chatHistory.push(analysisMsg);
+
+  const typing = appendChatTyping();
+  try {
+    const res = await fetchChat(null, getChatSystem(), 800, tempMessages);
+    typing.remove();
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const bubble = appendChatCoach('');
+    const full = await streamInto(res, bubble, 'chatMessages');
+    if (full) {
+      chatHistory.push({ role: 'assistant', content: full });
+      analysisTriggered = true;
+      saveSession();
+    }
+  } catch (err) {
+    typing.remove();
+    appendChatCoach(`Fehler: ${esc(err.message)}`);
+  }
+
+  isRunning = false;
+  g('analysisBtn').disabled = false;
+  g('analysisBtn').textContent = 'Weganalyse ✓';
+  g('chatInput').focus();
+}
+
+/* ════════════════════════════════════════
+   API + STREAMING
+════════════════════════════════════════ */
+async function fetchChat(singleContent, system, maxTokens, messages) {
+  const body = { system, maxTokens };
+  if (messages) {
+    body.messages = messages;
+  } else {
+    body.messages = [{ role: 'user', content: singleContent }];
+  }
+  return fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
+async function streamInto(res, el, scrollId) {
+  let full = '';
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    for (const line of dec.decode(value).split('\n')) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (raw === '[DONE]') continue;
+      try {
+        const obj = JSON.parse(raw);
+        if (obj.type === 'content_block_delta' && obj.delta?.type === 'text_delta') {
+          full += obj.delta.text;
+          el.innerHTML = fmt(full);
+          scroll(scrollId);
+        }
+      } catch(_) {}
+    }
+  }
+  return full;
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ════════════════════════════════════════
+   DOM BUILDERS — DISCUSSION
+════════════════════════════════════════ */
+function appendDiscSep(num, label, isSynth) {
+  const div = document.createElement('div');
+  div.className = `round-sep${isSynth ? ' synth-sep' : ''}`;
+  const lbl = isSynth ? 'Synthese' : `Runde ${num} — ${label}`;
+  div.innerHTML = `<div class="sep-line"></div><span class="sep-label">${lbl}</span><div class="sep-line"></div>`;
+  g('discMessages').appendChild(div);
+  scroll('discMessages');
+}
+
+function appendTypingDisc(agent) {
+  const wrap = document.createElement('div');
+  wrap.className = 'typing-wrap';
+  const hdr = document.createElement('div');
+  hdr.className = 'agent-header';
+  hdr.innerHTML = `<div class="agent-bdg" style="background:${agent.color}">${agent.badge}</div><span class="agent-nm" style="color:${agent.color}">${agent.name}</span>`;
+  const dots = document.createElement('div');
+  dots.className = 'typing-dots';
+  dots.style.setProperty('--ac', agent.color);
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  wrap.appendChild(hdr); wrap.appendChild(dots);
+  g('discMessages').appendChild(wrap);
+  scroll('discMessages');
+  return wrap;
+}
+
+function appendDiscBubble(agent, isSynth) {
+  const wrap = document.createElement('div');
+  wrap.className = 'agent-wrap';
+  wrap.innerHTML = `
+    <div class="agent-header">
+      <div class="agent-bdg" style="background:${agent.color}">${agent.badge}</div>
+      <span class="agent-nm" style="color:${agent.color}">${agent.name}</span>
+      <span class="agent-sub">${agent.sub}</span>
+    </div>`;
+  const bubble = document.createElement('div');
+  bubble.className = `agent-bubble${isSynth ? ' synth-bubble' : ''}`;
+  bubble.style.setProperty('--ac', agent.color);
+  wrap.appendChild(bubble);
+  g('discMessages').appendChild(wrap);
+  scroll('discMessages');
+  return bubble;
+}
+
+/* ════════════════════════════════════════
+   DOM BUILDERS — CHAT
+════════════════════════════════════════ */
+function appendChatUser(text) {
+  const wrap = document.createElement('div');
+  wrap.className = 'user-wrap';
+  wrap.innerHTML = `<div class="user-lbl">Du</div><div class="user-bubble">${fmt(esc(text))}</div>`;
+  g('chatMessages').appendChild(wrap);
+  scroll('chatMessages');
+}
+
+function appendChatCoach(html) {
+  const wrap = document.createElement('div');
+  wrap.className = 'coach-wrap';
+  const lbl = document.createElement('div');
+  lbl.className = 'coach-lbl';
+  lbl.textContent = 'Coach';
+  const bubble = document.createElement('div');
+  bubble.className = 'coach-bubble';
+  bubble.innerHTML = fmt(html);
+  wrap.appendChild(lbl); wrap.appendChild(bubble);
+  g('chatMessages').appendChild(wrap);
+  scroll('chatMessages');
+  return bubble;
+}
+
+function appendChatTyping() {
+  const wrap = document.createElement('div');
+  wrap.className = 'coach-wrap chat-typing-wrap';
+  const lbl = document.createElement('div');
+  lbl.className = 'coach-lbl';
+  lbl.textContent = 'Coach';
+  const dots = document.createElement('div');
+  dots.className = 'chat-typing-dots';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  wrap.appendChild(lbl); wrap.appendChild(dots);
+  g('chatMessages').appendChild(wrap);
+  scroll('chatMessages');
+  return wrap;
+}
+
+function appendEventNote(text) {
+  const div = document.createElement('div');
+  div.className = 'event-bubble';
+  div.textContent = text;
+  g('chatMessages').appendChild(div);
+  scroll('chatMessages');
+}
+
+/* ════════════════════════════════════════
+   SHARED DOM BUILDERS
+════════════════════════════════════════ */
+function appendDoneNote(containerId) {
+  const div = document.createElement('div');
+  div.className = 'done-note';
+  div.innerHTML = `<div class="done-check">✓</div><span>Abgeschlossen</span>`;
+  g(containerId).appendChild(div);
+  scroll(containerId);
+}
+
+function appendError(containerId, msg) {
+  const div = document.createElement('div');
+  div.className = 'error-block';
+  div.innerHTML = `<strong>Fehler:</strong> ${esc(msg)}<small>Stelle sicher, dass ANTHROPIC_API_KEY in Vercel gesetzt ist.</small>`;
+  g(containerId).appendChild(div);
+  scroll(containerId);
+}
+
+/* ════════════════════════════════════════
+   AUTH
+════════════════════════════════════════ */
+const AUTH_CODE = '1231';
+
+function handleAuthKey(e) {
+  if (e.key === 'Enter') submitAuth();
+}
+
+function submitAuth() {
+  const val = g('authInput').value.trim();
+  if (val === AUTH_CODE) {
+    try { sessionStorage.setItem('auth', '1'); } catch(_) {}
+    g('authError').textContent = '';
+    afterAuth();
+  } else {
+    g('authError').textContent = 'Falscher Code.';
+    g('authInput').value = '';
+    g('authInput').focus();
+  }
+}
+
+function afterAuth() {
+  const session = loadSession();
+  if (session && session.chatHistory && session.chatHistory.length > 0) {
+    const d = new Date(session.savedAt);
+    const label = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) +
+      ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    g('restoreText').textContent = `Letzte Sitzung: ${label} — Ziel: "${(session.profile?.goal || '').slice(0, 40)}"`;
+    g('restoreBanner').classList.remove('hidden');
+  }
+  startOnboarding();
+}
+
+/* ════════════════════════════════════════
+   RESET
+════════════════════════════════════════ */
+function fullReset() {
+  if (isRunning) return;
+  clearSession();
+  profile    = { goal: '', price: '', fears: '', reasons: '' };
+  discHistory = [];
+  chatHistory = [];
+  chatCount  = 0;
+  scriptGenerated  = false;
+  analysisTriggered = false;
+  g('obInput').disabled = false;
+  g('obSendBtn').disabled = false;
+  startOnboarding();
+}
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+(function init() {
+  ['viewOnboarding','viewDiscussion','viewChat'].forEach(v => g(v).classList.add('hidden'));
+
+  let authed = false;
+  try { authed = sessionStorage.getItem('auth') === '1'; } catch(_) {}
+
+  if (authed) {
+    afterAuth();
+  } else {
+    showView('viewAuth');
+    setTimeout(() => g('authInput').focus(), 100);
+  }
+})();
+</script>
+</body>
+</html>
