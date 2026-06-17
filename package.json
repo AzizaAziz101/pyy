@@ -1,0 +1,9 @@
+{
+  "name": "pyy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.600.0"
+  }
+}
