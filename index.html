@@ -1123,7 +1123,7 @@ function appendDoneNote(containerId) {
 function appendError(containerId, msg) {
   const div = document.createElement('div');
   div.className = 'error-block';
-  div.innerHTML = `<strong>Fehler:</strong> ${esc(msg)}<small>Stelle sicher, dass AWS_BEARER_TOKEN_BEDROCK in Vercel gesetzt ist.</small>`;
+  div.innerHTML = `<strong>Fehler:</strong> ${esc(msg)}<small>Stelle sicher, dass AWS_ACCESS_KEY_ID und AWS_SECRET_ACCESS_KEY in Vercel gesetzt sind.</small>`;
   g(containerId).appendChild(div);
   scroll(containerId);
 }
