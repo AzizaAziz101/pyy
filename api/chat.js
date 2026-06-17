@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        model: 'openai.gpt-oss-20b-1:0',
+        model: 'meta.llama3-2-3b-instruct-v1:0',
         messages: openaiMessages,
         max_tokens: maxTokens || 2048,
         stream: true,
