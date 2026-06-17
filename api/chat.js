@@ -14,13 +14,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'messages array required' });
   }
 
-  const bedrockMessages = messages.map(m => ({
-    role: m.role,
-    content: [{ text: typeof m.content === 'string' ? m.content : m.content.map(c => c.text).join('') }],
-  }));
+  const openaiMessages = [];
+  if (system) openaiMessages.push({ role: 'system', content: system });
+  for (const m of messages) {
+    openaiMessages.push({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : m.content.map(c => c.text).join(''),
+    });
+  }
 
   const bedrockRes = await fetch(
-    'https://bedrock-runtime.eu-central-1.amazonaws.com/model/gpt-oss-20b/converse-stream',
+    'https://bedrock-runtime.eu-central-1.amazonaws.com/openai/v1/chat/completions',
     {
       method: 'POST',
       headers: {
@@ -28,9 +32,10 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        messages: bedrockMessages,
-        ...(system && { system: [{ text: system }] }),
-        inferenceConfig: { maxTokens: maxTokens || 2048 },
+        model: 'openai.gpt-oss-20b-1:0',
+        messages: openaiMessages,
+        max_tokens: maxTokens || 2048,
+        stream: true,
       }),
     }
   );

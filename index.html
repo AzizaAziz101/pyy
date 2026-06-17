@@ -1000,8 +1000,9 @@ async function streamInto(res, el, scrollId) {
       if (raw === '[DONE]') continue;
       try {
         const obj = JSON.parse(raw);
-        if (obj.type === 'content_block_delta' && obj.delta?.type === 'text_delta') {
-          full += obj.delta.text;
+        const chunk = obj.choices?.[0]?.delta?.content;
+        if (chunk) {
+          full += chunk;
           el.innerHTML = fmt(full);
           scroll(scrollId);
         }
@@ -1122,7 +1123,7 @@ function appendDoneNote(containerId) {
 function appendError(containerId, msg) {
   const div = document.createElement('div');
   div.className = 'error-block';
-  div.innerHTML = `<strong>Fehler:</strong> ${esc(msg)}<small>Stelle sicher, dass ANTHROPIC_API_KEY in Vercel gesetzt ist.</small>`;
+  div.innerHTML = `<strong>Fehler:</strong> ${esc(msg)}<small>Stelle sicher, dass AWS_BEARER_TOKEN_BEDROCK in Vercel gesetzt ist.</small>`;
   g(containerId).appendChild(div);
   scroll(containerId);
 }
