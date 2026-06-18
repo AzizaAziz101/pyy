@@ -15,7 +15,8 @@ export default async function handler(req, res) {
   }
 
   const openaiMessages = [];
-  if (system) openaiMessages.push({ role: 'system', content: system });
+  const systemWithLang = `CRITICAL: Always respond in German. Never use English under any circumstances.\n\n${system || ''}`;
+  openaiMessages.push({ role: 'system', content: systemWithLang });
   for (const m of messages) {
     openaiMessages.push({
       role: m.role,
